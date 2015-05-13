@@ -36,7 +36,9 @@ public class ReportedUser {
         if (!(o instanceof ReportedUser)) return false;
 
         ReportedUser that = (ReportedUser) o;
-        return id.equals(that.id) && name.equals(that.name) && transactionsAmount.equals(that.transactionsAmount);
+
+        return id.equals(that.id) && name.equals(that.name) &&
+                transactionsAmount == null ? that.transactionsAmount == null : transactionsAmount.equals(that.transactionsAmount);
     }
 
     @Override
