@@ -11,6 +11,8 @@ import pl.allegro.promo.geecon2015.domain.user.User;
 import pl.allegro.promo.geecon2015.domain.user.UserRepository;
 
 import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.stream.Stream;
 
 @Component
@@ -37,15 +39,20 @@ public class ReportGenerator {
 
         Stream<ReportedUser> reportedUsers = stats.getUserIds().stream().map(
                 uuid -> {
-                    User details = userRepository.detailsOf(uuid);
+                    Optional<User> details = getUserDetails(uuid);
 
-                    UserTransactions transactions = transactionRepository.transactionsOf(uuid);
-                    BigDecimal transAmount = transactions.getTransactions()
+                    Optional<UserTransactions> transactions = getUserTransactions(uuid);
+                    BigDecimal transAmount = transactions.isPresent() ? transactions.get()
+                            .getTransactions()
                             .stream()
                             .map(UserTransaction::getAmount)
-                            .reduce(BigDecimal.ZERO, BigDecimal::add);
+                            .reduce(BigDecimal.ZERO, BigDecimal::add)
+                            : null;
 
-                    return new ReportedUser(uuid, details.getName(), transAmount);
+                    return new ReportedUser(
+                            uuid,
+                            details.orElseGet(() -> new User(uuid, "<failed>")).getName(),
+                            transAmount);
                 });
 
         Report report = new Report();
@@ -53,5 +60,21 @@ public class ReportGenerator {
 
         return report;
     }
-    
+
+    private Optional<UserTransactions> getUserTransactions(UUID uuid) {
+        try {
+            return Optional.of(transactionRepository.transactionsOf(uuid));
+        } catch (Exception e) {
+            return Optional.empty();
+        }
+    }
+
+    private Optional<User> getUserDetails(UUID uuid) {
+        try {
+            return Optional.of(userRepository.detailsOf(uuid));
+        } catch(Exception e) {
+            return Optional.empty();
+        }
+    }
+
 }
